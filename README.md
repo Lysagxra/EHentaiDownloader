@@ -1,4 +1,4 @@
-# EHentai Downloader
+# E-Hentai Downloader
 
 > A Python-based tool for downloading E-Hentai albums. This tool reads a list of URLs from a file and processes the downloads accordingly.
 
