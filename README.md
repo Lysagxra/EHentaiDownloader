@@ -2,12 +2,12 @@
 
 > A Python-based tool for downloading E-Hentai albums. This tool reads a list of URLs from a file and processes the downloads accordingly.
 
-![Demo]()
+![Demo](https://github.com/Lysagxra/EHentaiDownloader/blob/e6e408181db6bb6707c29135c7fd04b4859830d5/misc/Demo.gif)
 
 ## Features
 
 - Downloads multiple files concurrently.
-- Supports [batch downloading]() via a list of URLs.
+- Supports [batch downloading](https://github.com/Lysagxra/EHentaiDownloader/tree/main?tab=readme-ov-file#batch-download) via a list of URLs.
 - Tracks download progress with a progress bar.
 - Automatically creates a directory structure for organized storage.
 
@@ -105,3 +105,8 @@ python3 main.py
 ```
 
 3. The downloaded files will be saved in the `Downloads` directory.
+
+
+## Logging
+
+The application logs any issues encountered during the download process in a file named `session_log.txt`. Check this file for any URLs that may have been blocked or had errors.
