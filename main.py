@@ -14,7 +14,7 @@ import asyncio
 import sys
 
 from downloader import download_album, initialize_managers
-from helpers.config import FILE, SESSION_LOG
+from helpers.config import SESSION_LOG, URLS_FILE
 from helpers.file_utils import read_file, write_file
 from helpers.general_utils import clear_terminal
 
@@ -43,10 +43,9 @@ async def main() -> None:
     clear_terminal()
     write_file(SESSION_LOG)
 
-    urls = read_file(FILE)
+    urls = read_file(URLS_FILE)
     await process_urls(urls)
-
-    write_file(FILE)
+    write_file(URLS_FILE)
 
 
 if __name__ == "__main__":
