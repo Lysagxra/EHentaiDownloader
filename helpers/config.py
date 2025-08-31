@@ -33,7 +33,7 @@ RATE_LIMIT_SLEEPING_TIME = 60  # Time to wait when rate-limited (in seconds).
 # User-Agent Rotator
 # ============================
 # Creating a user-agent rotator
-USER_AGENT_ROTATOR = UserAgent(use_external_data=True)
+USER_AGENT_ROTATOR = UserAgent()
 
 
 # Helper functions
