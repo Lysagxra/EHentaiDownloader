@@ -35,16 +35,16 @@ async def process_urls(urls: list[str]) -> None:
 
 
 async def main() -> None:
-    """Run the script.
-
-    Clears the session log, reads URLs from a file, processes them,
-    and clears the URLs file at the end.
-    """
+    """Run the script."""
+    # Clear the terminal and session log file
     clear_terminal()
     write_file(SESSION_LOG)
 
-    urls = read_file(URLS_FILE)
+    # Read and process URLs, ignoring empty lines
+    urls = [url.strip() for url in read_file(URLS_FILE) if url.strip()]
     await process_urls(urls)
+
+    # Clear URLs file
     write_file(URLS_FILE)
 
 
