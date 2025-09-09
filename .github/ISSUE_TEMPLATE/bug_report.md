@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+A clear and concise description of what the bug is (please write in English).
 
 **Environment (please complete the following information):**
  - OS: [e.g. Windows]
