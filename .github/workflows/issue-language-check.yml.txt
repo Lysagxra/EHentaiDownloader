@@ -1,0 +1,58 @@
+name: Issue Language Check
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  check-language:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install langdetect PyGithub
+
+      - name: Detect language and warn if not English
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          import os
+          from github import Github
+          from langdetect import detect, DetectorFactory
+
+          DetectorFactory.seed = 0  # deterministic results
+
+          g = Github(os.environ["GITHUB_TOKEN"])
+          repo = g.get_repo("${{ github.repository }}")
+          issue = repo.get_issue(number=${{ github.event.issue.number }})
+
+          text = issue.title + " " + (issue.body or "")
+
+          try:
+              lang = detect(text)
+          except Exception:
+              lang = "unknown"
+
+          if lang != "en":
+              # Add invalid label
+              if "invalid" not in [l.name for l in issue.labels]:
+                  issue.add_to_labels("invalid")
+
+              # Leave a comment
+              issue.create_comment(
+                  "⚠️ Thanks for opening this issue!\n\n"
+                  "Please note that this repository only accepts issues in **English**. "
+                  "Could you kindly edit this issue and provide a translated version?\n\n"
+                  "If the issue is not updated to English, it will eventually be closed "
+                  "and remain labeled as `invalid`."
+              )
+
