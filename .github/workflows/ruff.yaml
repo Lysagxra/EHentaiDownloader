@@ -1,32 +1,40 @@
-name: Ruff
+name: Python Code Quality
 
 on: [push, pull_request]
 
 jobs:
-  ruff:
+  code-quality:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff
+          pip install pylint ruff pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Pylint lint
+        run: |
+          pylint $(git ls-files '*.py') || true  # non blocca il workflow se ci sono warning
 
       - name: Ruff lint
         uses: astral-sh/ruff-action@v3
 
       - name: Ruff format check
         run: ruff format --check --diff
-        continue-on-error: true
+        continue-on-error: true  # mostra le differenze ma non fallisce il workflow
 
-      # Optional: auto-format all files (uncomment if you want to apply fixes automatically)
-      # - name: Auto-format with Ruff
-      #   run: ruff format .
+      - name: Pytest
+        run: |
+          pytest || true  # continua anche se non ci sono test o ci sono fallimenti
