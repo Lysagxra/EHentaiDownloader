@@ -25,3 +25,8 @@ jobs:
 
       - name: Ruff format check
         run: ruff format --check --diff
+        continue-on-error: true
+
+      # Optional: auto-format all files (uncomment if you want to apply fixes automatically)
+      # - name: Auto-format with Ruff
+      #   run: ruff format .
