@@ -1,13 +1,8 @@
 """Album downloader script.
 
-This module provides functionality to download an album from a given URL while
-tracking progress and logging events. It initializes necessary managers for
-live updates and handles command-line execution.
-
-Functions:
-    download_album(url, live_manager): Downloads an album using the live manager.
-    initialize_managers(): Initializes and returns progress and logging managers.
-    main(): Parses command-line arguments and starts the album download.
+This module provides functionality to download an album from a given URL while tracking
+progress and logging events. It initializes necessary managers for live updates and
+handles command-line execution.
 
 Usage:
     python3 script.py <album_url>
@@ -19,11 +14,11 @@ import logging
 import sys
 from pathlib import Path
 
-from helpers.downloader.album_downloader import AlbumDownloader
-from helpers.general_utils import clear_terminal
-from helpers.managers.live_manager import LiveManager
-from helpers.managers.log_manager import LoggerTable
-from helpers.managers.progress_manager import ProgressManager
+from src.downloader.album_downloader import AlbumDownloader
+from src.general_utils import clear_terminal
+from src.managers.live_manager import LiveManager
+from src.managers.log_manager import LoggerTable
+from src.managers.progress_manager import ProgressManager
 
 
 def download_album(url: str, live_manager: LiveManager) -> None:
