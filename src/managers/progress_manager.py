@@ -6,6 +6,7 @@ monitoring task completion.
 from __future__ import annotations
 
 from collections import deque
+import threading
 
 from rich.panel import Panel
 from rich.progress import (
@@ -38,6 +39,7 @@ class ProgressManager:
         self.task_progress = self._create_progress_bar()
         self.num_tasks = 0
         self.overall_buffer = deque(maxlen=overall_buffer_size)
+        self._lock = threading.Lock()
 
     def add_overall_task(self, description: str, num_tasks: int) -> None:
         """Add an overall progress task with a given description and total tasks."""
@@ -66,13 +68,14 @@ class ProgressManager:
             visible: bool = True,
         ) -> None:
         """Update the progress of an individual task and the overall progress."""
-        self.task_progress.update(
-            task_id,
-            completed=completed if completed is not None else None,
-            advance=advance if completed is None else None,
-            visible=visible,
-        )
-        self._update_overall_task(task_id)
+        with self._lock:
+            self.task_progress.update(
+                task_id,
+                completed=completed if completed is not None else None,
+                advance=advance if completed is None else None,
+                visible=visible,
+            )
+            self._update_overall_task(task_id)
 
     def create_progress_table(self) -> Table:
         """Create a formatted progress table for tracking the download."""

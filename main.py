@@ -9,43 +9,50 @@ Usage:
     'URLs.txt' and log the session activities in 'session.log'.
 """
 
-import asyncio
 import sys
 
-from downloader import download_album, initialize_managers
+from downloader import (
+    build_download_queue,
+    download_albums,
+    initialize_managers,
+    update_retry_file,
+)
 from src.config import SESSION_LOG, URLS_FILE
 from src.file_utils import read_file, write_file
 from src.general_utils import clear_terminal
 
 
-async def process_urls(urls: list[str]) -> None:
-    """Validate and downloads items for a list of URLs."""
+def process_urls(urls: list[str]) -> None:
+    """Download queued URLs and persist failures into retry.txt."""
     live_manager = initialize_managers()
 
     with live_manager.live:
-        for url in urls:
-            download_album(url, live_manager)
+        successful_urls, failed_urls = download_albums(urls, live_manager)
+        update_retry_file(successful_urls=successful_urls, failed_urls=failed_urls)
 
         live_manager.stop()
 
 
-async def main() -> None:
+def main() -> None:
     """Run the script."""
     # Clear the terminal and session log file
     clear_terminal()
     write_file(SESSION_LOG)
 
-    # Read and process URLs, ignoring empty lines
-    urls = [url.strip() for url in read_file(URLS_FILE) if url.strip()]
-    await process_urls(urls)
+    # Build a retry-aware queue from URLs.txt and retry.txt.
+    input_urls = [url.strip() for url in read_file(URLS_FILE) if url.strip()]
+    urls = build_download_queue(input_urls)
 
-    # Clear URLs file
+    if urls:
+        process_urls(urls)
+
+    # URLs.txt is cleared so completed items are not re-queued on the next run.
     write_file(URLS_FILE)
 
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        main()
 
     except KeyboardInterrupt:
         sys.exit(1)
