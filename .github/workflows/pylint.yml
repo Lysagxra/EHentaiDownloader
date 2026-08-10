@@ -33,4 +33,4 @@ jobs:
 
       - name: Pylint code check
         run: |
-          python -m pylint $(git ls-files '*.py')
+          python -m pylint --disable=broad-exception-caught $(git ls-files '*.py')

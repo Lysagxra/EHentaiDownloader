@@ -22,6 +22,11 @@ CHUNK_SIZE = 16 * KB  # The size of each chunk when downloading files.
 MAX_WORKERS = 5       # The number of concurrent image downloads.
 
 # ============================
+# Regex
+# ============================
+NL_VALUE_PATTERN = r"nl\('([^']+)'\)"
+
+# ============================
 # HTTP / Network
 # ============================
 # HTTP status codes

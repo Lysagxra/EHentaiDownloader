@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from requests import Session
 
+from src.config import NL_VALUE_PATTERN
 from src.general_utils import fetch_page
 from src.managers.live_manager import LiveManager
 
@@ -98,12 +99,7 @@ class Crawler:
                 referer=referer or self.url,
             )
             nl_container = soup.find("a", {"id": "loadfail", "onclick": True})
-            if not nl_container or "onclick" not in nl_container.attrs:
-                self.live_manager.update_log(
-                    "Missing 'nl' container",
-                    f"No 'loadfail' link with 'onclick' found for {picture_page}.",
-                )
-                return None
+            nl_value = re.search(NL_VALUE_PATTERN, nl_container.get("onclick")).group(1)
 
             match = re.search(r"nl\('([^']+)'\)", nl_container["onclick"])
             if not match:

@@ -125,9 +125,10 @@ class AlbumDownloader:
         num_pictures = len(picture_pages)
         task = self.live_manager.add_task(current_task=current_task, total=num_pictures)
 
-        # Thread lock for safely appending to failed_downloads list
-        import threading
-        failed_lock = threading.Lock()
+        for reloaded_page in reloaded_pages:
+            soup = fetch_page(reloaded_page)
+            download_link_container = soup.find("img", {"id": "img", "src": True})
+            download_link = download_link_container.get("src")
 
         def download_worker(picture_page: str) -> None:
             nonlocal failed_downloads
