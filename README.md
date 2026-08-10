@@ -10,6 +10,10 @@
 - Supports [batch downloading](https://github.com/Lysagxra/EHentaiDownloader/tree/main?tab=readme-ov-file#batch-download) via a list of URLs.
 - Tracks download progress with a progress bar.
 - Automatically creates a directory structure for organized storage.
+- URL-level retry for both batch and single-album runs.
+- Automatic `retry.txt` generation and persistent recovery queue.
+- Bidirectional domain fallback: `e-hentai.org <-> exhentai.org`.
+- Partial resume support by skipping already downloaded files.
 
 ## Dependencies
 
@@ -104,13 +108,66 @@ https://e-hentai.org/g/2490534/e80e7c554c/
 
 2. Run the batch download script:
 
-```
+```bash
 python3 main.py
 ```
 
 3. The downloaded files will be saved in the `Downloads` directory.
 
 
+## Recovery / Retry Workflow
+
+The downloader now supports recovery across runs through `retry.txt`.
+
+- `retry.txt` is created automatically if it does not exist.
+- Failed URLs are written to `retry.txt`.
+- Successful URLs are removed from `retry.txt`.
+- Batch mode reads URLs from both `URLs.txt` and `retry.txt` (deduplicated, stable order).
+- `URLs.txt` is cleared at the end of a run; unresolved URLs remain in `retry.txt`.
+
+### Typical recovery flow (batch)
+
+1. Put new gallery URLs in `URLs.txt`.
+2. Run:
+
+```
+python3 main.py
+```
+
+3. If some URLs fail, rerun the same command. Pending entries from `retry.txt` are retried automatically.
+
+### Typical recovery flow (single URL)
+
+1. Run:
+
+```bash
+python3 downloader.py <album_url>
+```
+
+2. If it fails after retries, the URL is added to `retry.txt`.
+3. Run again later; if successful, that URL is removed from `retry.txt`.
+
+
+## Retry and Resume Settings
+
+- URL-level retries are configured by `URL_RETRY_ATTEMPTS` in `src/config.py`.
+- Image-level retries are handled internally in the downloader utilities.
+- Already downloaded image files are skipped to resume interrupted downloads.
+
+
+## Domain Fallback Behavior
+
+When a gallery page is unavailable or unusable on one domain, the downloader automatically
+tries the alternate domain:
+
+- `e-hentai.org` -> `exhentai.org`
+- `exhentai.org` -> `e-hentai.org`
+
+Note: `exhentai.org` may require valid cookies to avoid the "Sad Panda" page.
+
+
 ## Logging
 
-The application logs any issues encountered during the download process in a file named `session_log.txt`. Check this file for any URLs that may have been blocked or had errors.
+The application logs issues encountered during the download process in `session.log`.
+
+Failed URL tracking is persisted in `retry.txt`.

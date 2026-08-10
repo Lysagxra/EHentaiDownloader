@@ -47,7 +47,7 @@ class AlbumDownloader:
         self.initial_soup = fetch_page(
             self.url,
             session=self.session,
-            referer="https://e-hentai.org/",
+            referer=self.url,
         )
         if hasattr(self.initial_soup, "fetched_url"):
             self.url = self.initial_soup.fetched_url
@@ -65,6 +65,7 @@ class AlbumDownloader:
         """Download all images from the album while tracking progress."""
         album_pages_soups = self.crawler.collect_album_pages_soups()
         num_pages = len(album_pages_soups)
+        total_failed_downloads = 0
         self.live_manager.add_overall_task(
             description=self.album_name,
             num_tasks=num_pages,
@@ -77,6 +78,7 @@ class AlbumDownloader:
             failed_downloads = self._extract_and_download(
                 self.session, picture_pages, current_task,
             )
+            total_failed_downloads += len(failed_downloads)
 
             if failed_downloads:
                 self.live_manager.update_log(
@@ -91,6 +93,11 @@ class AlbumDownloader:
                     "Pausing before resuming the download...",
                 )
                 time.sleep(random.uniform(1, 5))  # noqa: S311
+
+        if total_failed_downloads > 0:
+            raise RuntimeError(
+                f"Album download completed with {total_failed_downloads} failed image(s)."
+            )
 
     def download_picture(
             self,
@@ -164,6 +171,13 @@ class AlbumDownloader:
                 self.live_manager.update_task(task, advance=1)
                 return
 
+            filename = download_link.split("/")[-1]
+            final_path = Path(self.download_path) / filename
+            # Resume support: skip files already present from previous runs.
+            if final_path.exists() and final_path.stat().st_size > 0:
+                self.live_manager.update_task(task, advance=1)
+                return
+
             # 3. Download the actual image file with retries
             headers = prepare_headers(download_link)
             response = fetch_with_retries(
@@ -184,7 +198,6 @@ class AlbumDownloader:
                 self.live_manager.update_task(task, advance=1)
                 return
 
-            filename = download_link.split("/")[-1]
             self.download_picture(response, filename, task)
 
             # Polite sleep between tasks in each thread

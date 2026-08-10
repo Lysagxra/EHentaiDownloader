@@ -11,6 +11,7 @@ import os
 import random
 import time
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -199,6 +200,40 @@ def create_session() -> requests.Session:
     return session
 
 
+def _get_alternate_domain_url(url: str) -> str | None:
+    """Return a URL with the alternate gallery domain if supported."""
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+
+    if "e-hentai.org" in host:
+        alternate_host = parsed.netloc.replace("e-hentai.org", "exhentai.org")
+    elif "exhentai.org" in host:
+        alternate_host = parsed.netloc.replace("exhentai.org", "e-hentai.org")
+    else:
+        return None
+
+    return urlunparse(parsed._replace(netloc=alternate_host))
+
+
+def _adapt_referer_to_target_domain(referer: str | None, target_url: str) -> str | None:
+    """Align referer domain with target URL domain to reduce cross-domain blocking."""
+    if not referer:
+        return None
+
+    target_host = urlparse(target_url).netloc
+    if not target_host:
+        return referer
+
+    parsed_referer = urlparse(referer)
+    if not parsed_referer.netloc:
+        return referer
+
+    if parsed_referer.netloc == target_host:
+        return referer
+
+    return urlunparse(parsed_referer._replace(netloc=target_host))
+
+
 def fetch_page(
     url: str,
     timeout: int = 10,
@@ -207,31 +242,54 @@ def fetch_page(
 ) -> BeautifulSoup:
     """Fetch the HTML content of a webpage with cookies and browser headers."""
     request_session = session or create_session()
-    headers = {"Referer": referer} if referer else None
     has_cookies = bool(request_session.cookies)
 
-    try:
-        response = request_session.get(url, timeout=timeout, headers=headers)
+    def _request_page(target_url: str, target_referer: str | None) -> tuple[requests.Response, str]:
+        headers = {"Referer": target_referer} if target_referer else None
+        response = request_session.get(target_url, timeout=timeout, headers=headers)
         response.raise_for_status()
 
-        fetched_url = url
-        # If exhentai.org returns an empty response (usually due to missing/invalid cookies),
-        # try falling back to e-hentai.org.
-        if not response.text.strip() and "exhentai.org" in url:
-            fallback_url = url.replace("exhentai.org", "e-hentai.org")
-            logging.warning(f"ExHentai returned an empty response for {url}. Trying fallback: {fallback_url}")
-            response = request_session.get(fallback_url, timeout=timeout, headers=headers)
-            response.raise_for_status()
-            fetched_url = fallback_url
+        if not response.text.strip():
+            return response, "empty"
 
         diagnosis = _classify_page_problem(
-            url=fetched_url,
+            url=target_url,
             status_code=response.status_code,
             html=response.text,
             has_cookies=has_cookies,
         )
         if diagnosis:
-            raise RuntimeError(f"Error fetching page {fetched_url}: {diagnosis}")
+            return response, diagnosis
+
+        return response, "ok"
+
+    try:
+        primary_referer = _adapt_referer_to_target_domain(referer, url)
+        response, primary_state = _request_page(url, primary_referer)
+        fetched_url = url
+
+        # Try domain fallback in both directions when the primary response is unusable.
+        if primary_state != "ok":
+            fallback_url = _get_alternate_domain_url(url)
+            if fallback_url:
+                fallback_referer = _adapt_referer_to_target_domain(referer, fallback_url)
+                logging.warning(
+                    "Primary response unusable for %s (%s). Trying fallback: %s",
+                    url,
+                    primary_state,
+                    fallback_url,
+                )
+                fallback_response, fallback_state = _request_page(fallback_url, fallback_referer)
+                if fallback_state == "ok":
+                    response = fallback_response
+                    fetched_url = fallback_url
+                else:
+                    raise RuntimeError(
+                        f"Error fetching page {url}: primary={primary_state}; "
+                        f"fallback={fallback_state}"
+                    )
+            else:
+                raise RuntimeError(f"Error fetching page {url}: {primary_state}")
 
         soup = BeautifulSoup(response.text, "html.parser")
         soup.fetched_url = fetched_url
@@ -239,6 +297,50 @@ def fetch_page(
 
     except requests.RequestException as req_err:
         response = req_err.response if hasattr(req_err, "response") else None
+        fallback_url = _get_alternate_domain_url(url)
+        if fallback_url:
+            try:
+                fallback_referer = _adapt_referer_to_target_domain(referer, fallback_url)
+                fallback_response, fallback_state = _request_page(fallback_url, fallback_referer)
+                if fallback_state == "ok":
+                    soup = BeautifulSoup(fallback_response.text, "html.parser")
+                    soup.fetched_url = fallback_url
+                    logging.warning(
+                        "Primary request failed for %s (%s). Recovered via fallback %s",
+                        url,
+                        req_err,
+                        fallback_url,
+                    )
+                    return soup
+
+                message = (
+                    f"Error fetching page {url}: primary request failed ({req_err}); "
+                    f"fallback unusable ({fallback_state})"
+                )
+                logging.exception(message)
+                raise RuntimeError(message) from req_err
+            except requests.RequestException as fallback_err:
+                primary_message = _build_request_error_message(
+                    url=url,
+                    response=response,
+                    error=req_err,
+                    has_cookies=has_cookies,
+                )
+                fallback_response = (
+                    fallback_err.response
+                    if hasattr(fallback_err, "response")
+                    else None
+                )
+                fallback_message = _build_request_error_message(
+                    url=fallback_url,
+                    response=fallback_response,
+                    error=fallback_err,
+                    has_cookies=has_cookies,
+                )
+                message = f"{primary_message}. Fallback failed too: {fallback_message}"
+                logging.exception(message)
+                raise RuntimeError(message) from req_err
+
         message = _build_request_error_message(
             url=url,
             response=response,

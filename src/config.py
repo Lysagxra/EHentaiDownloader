@@ -12,6 +12,7 @@ from fake_useragent import UserAgent
 DOWNLOAD_FOLDER = "Downloads"  # The folder where downloaded files will be stored.
 URLS_FILE = "URLs.txt"         # The file containing the list of URLs to process.
 SESSION_LOG = "session.log"    # The file where session logs will be recorded.
+RETRY_FILE = "retry.txt"       # Stores URLs that failed and should be retried.
 
 # ============================
 # Download Settings
@@ -28,6 +29,7 @@ HTTP_RATE_LIMIT = 429
 
 CONNECTION_TIMEOUT = 30        # Timeout duration for network requests (in seconds).
 RATE_LIMIT_SLEEPING_TIME = 60  # Time to wait when rate-limited (in seconds).
+URL_RETRY_ATTEMPTS = 2         # Number of URL-level retry attempts in a single run.
 
 # ============================
 # User-Agent Rotator

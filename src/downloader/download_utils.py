@@ -23,7 +23,9 @@ if TYPE_CHECKING:
 
 def prepare_headers(url: str) -> dict:
     """Prepare a random HTTP headers with a user-agent string for making requests."""
-    host = urlparse(url).netloc
+    parsed_url = urlparse(url)
+    host = parsed_url.netloc
+    referer_base = f"{parsed_url.scheme}://{host}/" if parsed_url.scheme and host else "https://e-hentai.org/"
     user_agent = prepare_user_agent()
     return {
         "Host": host,
@@ -34,7 +36,7 @@ def prepare_headers(url: str) -> dict:
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br, zstd",
         "Connection": "keep-alive",
-        "Referer": "https://e-hentai.org/",
+        "Referer": referer_base,
         "Sec-Fetch-Dest": "image",
         "Sec-Fetch-Mode": "no-cors",
         "Sec-Fetch-Site": "cross-site",
