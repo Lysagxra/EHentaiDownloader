@@ -35,12 +35,15 @@ async def main() -> None:
     clear_terminal()
     write_file(SESSION_LOG)
 
-    # Read and process URLs, ignoring empty lines
-    urls = [url.strip() for url in read_file(URLS_FILE) if url.strip()]
-    await process_urls(urls)
+    # Use the command-line URL if provided, otherwise fall back to URLs.txt
+    if len(sys.argv) > 1:
+        urls = [sys.argv[1]]
+    else:
+        urls = [url.strip() for url in read_file(URLS_FILE) if url.strip()]
+        # Clear URLs file
+        write_file(URLS_FILE)
 
-    # Clear URLs file
-    write_file(URLS_FILE)
+    await process_urls(urls)
 
 
 if __name__ == "__main__":

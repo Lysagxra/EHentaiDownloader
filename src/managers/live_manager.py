@@ -43,9 +43,9 @@ class LiveManager:
         self.start_time = time.time()
         self.update_log("Script started", "The script has started execution.")
 
-    def add_overall_task(self, description: str, num_tasks: int) -> None:
+    def add_overall_task(self, description: str, num_tasks: int, num_pages: int) -> None:
         """Call ProgressManager to add an overall task."""
-        self.progress_manager.add_overall_task(description, num_tasks)
+        self.progress_manager.add_overall_task(description, num_tasks, num_pages)
 
     def add_task(self, current_task: int = 0, total: int = 100) -> int:
         """Call ProgressManager to add an individual task."""

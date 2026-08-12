@@ -80,7 +80,7 @@ def fetch_with_retries(
         if attempt < retries - 1:
             live_manager.update_log(
                 "Fetch attempt failed",
-                f"Fetch attemp failed for {url}. Retrying ({attempt + 1}/{retries})...",
+                f"Fetch attempt failed for {url}. Retrying ({attempt + 1}/{retries})...",
             )
             delay = 2 ** (attempt + 1) + random.uniform(1, 2)  # noqa: S311
             time.sleep(delay)

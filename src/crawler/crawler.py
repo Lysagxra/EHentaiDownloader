@@ -60,15 +60,22 @@ class Crawler:
         for picture_page in picture_pages:
             soup = fetch_page(picture_page)
             nl_container = soup.find("a", {"id": "loadfail", "onclick": True})
-            nl_value = re.search(NL_VALUE_PATTERN, nl_container.get("onclick")).group(1)
 
-            if nl_value:
-                reloaded_page = generate_reloaded_page(picture_page, nl_value)
-                reloaded_pages.append(reloaded_page)
-            else:
+            if nl_container is None:
+                self.live_manager.update_log(
+                    "Missing 'nl' value", f"No loadfail element for {picture_page}.",
+                )
+                continue
+
+            match = re.search(NL_VALUE_PATTERN, nl_container.get("onclick", ""))
+            if match is None:
                 self.live_manager.update_log(
                     "Missing 'nl' value", f"No 'nl' value found for {picture_page}.",
                 )
+                continue
+
+            reloaded_page = generate_reloaded_page(picture_page, match.group(1))
+            reloaded_pages.append(reloaded_page)
 
         return reloaded_pages
 
@@ -79,6 +86,8 @@ class Crawler:
             "a",
             {"href": pattern, "onclick": "return false"},
         )
+        if len(next_pages) < 2:
+            return []
 
         last_page_url = next_pages[-2].get("href")
         match = re.search(r"\?p=(\d+)", last_page_url)

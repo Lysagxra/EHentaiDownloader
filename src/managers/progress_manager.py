@@ -39,9 +39,9 @@ class ProgressManager:
         self.num_tasks = 0
         self.overall_buffer = deque(maxlen=overall_buffer_size)
 
-    def add_overall_task(self, description: str, num_tasks: int) -> None:
+    def add_overall_task(self, description: str, num_tasks: int, num_pages: int) -> None:
         """Add an overall progress task with a given description and total tasks."""
-        self.num_tasks = num_tasks
+        self.num_tasks = num_pages
         overall_description = self._adjust_description(description)
         self.overall_progress.add_task(
             f"[{self.color}]{overall_description}",
@@ -72,7 +72,7 @@ class ProgressManager:
             advance=advance if completed is None else None,
             visible=visible,
         )
-        self._update_overall_task(task_id)
+        self._update_overall_task(task_id, advance)
 
     def create_progress_table(self) -> Table:
         """Create a formatted progress table for tracking the download."""
@@ -96,14 +96,16 @@ class ProgressManager:
         return progress_table
 
     # Private methods
-    def _update_overall_task(self, task_id: int) -> None:
+    def _update_overall_task(self, task_id: int, advance: int) -> None:
         """Advance the overall progress bar and removes old tasks."""
         # Access the latest task dynamically
         current_overall_task = self.overall_progress.tasks[-1]
 
-        # If the task is finished, remove it and update the overall progress
+        # Advance the overall bar by the number of images downloaded
+        self.overall_progress.advance(current_overall_task.id, advance=advance)
+
+        # If the task is finished, remove it from display
         if self.task_progress.tasks[task_id].finished:
-            self.overall_progress.advance(current_overall_task.id)
             self.task_progress.update(task_id, visible=False)
 
         # Track completed overall tasks
